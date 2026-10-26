@@ -33,6 +33,7 @@ from ytpaw.infra.dependencies import ALL_DEPENDENCIES
 from ytpaw.infra.engine_settings_store import EngineSettingsStore
 from ytpaw.infra.info_fetcher import InfoFetcher
 from ytpaw.infra.queue_store import QueueStore
+from ytpaw.infra.runtime_paths import engine_env_dirs
 from ytpaw.infra.scheduler import Scheduler
 from ytpaw.infra.settings_store import SettingsStore
 from ytpaw.infra.setup_service import (
@@ -94,6 +95,7 @@ class MainWindow(QMainWindow):
         self._wire()
         self._build_footer()
 
+        env_paths = engine_env_dirs(Path(str(setup.app_data)))
         self._sched = Scheduler(
             self._db_path,
             {s.engine_id: s.path for s in setup.engines if s.path and s.enabled},
@@ -101,12 +103,12 @@ class MainWindow(QMainWindow):
             "%(uploader)s/%(title)s [%(id)s].%(ext)s",
             self._logs_dir,
             self,
-            env_path=Path(str(setup.app_data)) / "bin",
+            env_paths=env_paths,
         )
         self._sched.job_changed.connect(self._refresh_jobs)
         self._sched.job_changed.connect(self._pump_engine_updates)
         self._sched.job_changed.connect(self._pump_dep_updates)
-        self._fetcher = InfoFetcher(self)
+        self._fetcher = InfoFetcher(self, env_paths=env_paths)
         self._fetcher.info_ready.connect(self._on_info_ready)
         self._fetcher.info_failed.connect(self._on_info_failed)
         self._thumbs = ThumbnailLoader(self)
@@ -152,6 +154,8 @@ class MainWindow(QMainWindow):
             return
         engine = engines[0]
         status = self._engine_status.get(engine.engine_id)
+        if status is not None and status.path and status.origin == "bundled":
+            return  # standalone build already ships an engine; nothing to ask
         system_path = (
             status.path
             if status is not None and status.origin == "system"

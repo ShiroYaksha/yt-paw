@@ -8,10 +8,13 @@ process finishing late.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, QProcess, QTimer, Signal
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, Signal
 
+from ytpaw.infra.runtime_paths import prepend_path
 from ytpaw.infra.scheduler import friendly_error
 
 if TYPE_CHECKING:
@@ -22,11 +25,14 @@ class InfoFetcher(QObject):
     info_ready = Signal(object)  # MediaInfo
     info_failed = Signal(str)  # friendly message
 
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(
+        self, parent: QObject | None = None, env_paths: Sequence[Path] = ()
+    ) -> None:
         super().__init__(parent)
         self._proc: QProcess | None = None
         self._url = ""
         self._engine: Engine | None = None
+        self._env_paths = list(env_paths)
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._on_timeout)
@@ -55,6 +61,10 @@ class InfoFetcher(QObject):
         self._engine = engine
         args = engine.build_info_args(binary, url, playlist, cookies_file)
         proc = QProcess(self)
+        if self._env_paths:
+            env = QProcessEnvironment.systemEnvironment()
+            env.insert("PATH", prepend_path(self._env_paths, env.value("PATH", "")))
+            proc.setProcessEnvironment(env)
         proc.finished.connect(
             lambda code, status, p=proc: self._on_finished(p, code, status)
         )

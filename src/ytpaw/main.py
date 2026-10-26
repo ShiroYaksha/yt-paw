@@ -18,6 +18,13 @@ from ytpaw.ui.theme import apply_theme
 
 def main() -> int:
     profile = os.environ.get("YTPAW_PROFILE_DIR", "").strip()
+    if "--self-check" in sys.argv[1:]:
+        # Release builds run this before zipping; it needs no display.
+        from ytpaw.infra.self_check import run as run_self_check
+
+        if not profile:
+            return 2
+        return run_self_check(Path(profile).expanduser())
     setup = ensure_ready(Path(profile).expanduser() if profile else None)
     app = QApplication(sys.argv)
     app.setApplicationName("yt-paw")

@@ -1,0 +1,87 @@
+name: dependencies
+
+# Monthly read-only check. This workflow never pushes dependency changes; it
+# opens/updates one issue when the slow dependency train is due. A maintainer or
+# agent then runs deps.py update --due. See docs/dependency-updates.md.
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  push:
+    branches: [master]
+    paths:
+      - "packaging/dependency-state.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dependencies
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+
+      - name: Check dependency train
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          uv run --no-project python packaging/deps.py status \
+            --format json --fail-on-error > status.json
+          uv run --no-project python packaging/deps.py status \
+            --format markdown --fail-on-error > dependency-status.md
+
+      - name: Report status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          due=$(uv run --no-project python -c \
+            'import json; print(str(json.load(open("status.json"))["due"]).lower())')
+          existing=$(gh issue list --state open \
+            --search 'Dependency train in:title' \
+            --json number --jq '.[0].number // empty')
+
+          if [ "$due" = "true" ]; then
+            gh label create dependencies \
+              --description "Dependency train" --color 0e8a16 || true
+            {
+              echo "The dependency train is due. This issue is created by the"
+              echo "monthly check; it does not update anything itself."
+              echo
+              cat dependency-status.md
+              echo
+              echo "## Run"
+              echo
+              echo '```bash'
+              echo "uv run python packaging/deps.py update --due"
+              echo "uv run python packaging/deps.py verify"
+              echo '```'
+              echo
+              echo "Do not update when \`due\` is false. See"
+              echo "\`docs/dependency-updates.md\` for the full runbook."
+            } > issue.md
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" \
+                --title "Dependency train due" --body-file issue.md
+            else
+              gh issue create --title "Dependency train due" \
+                --label dependencies --body-file issue.md
+            fi
+          else
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" \
+                --comment "Dependency train is not due; closing."
+            fi
+            echo "Dependency train is not due." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          cat dependency-status.md >> "$GITHUB_STEP_SUMMARY"

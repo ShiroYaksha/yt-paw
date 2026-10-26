@@ -6,14 +6,14 @@ module stays engine-agnostic.
 
 from __future__ import annotations
 
-import os
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
 from ytpaw.infra import timing
+from ytpaw.infra.runtime_paths import prepend_path
 
 if TYPE_CHECKING:
     from ytpaw.domain.engines_base import ProgressUpdate
@@ -26,13 +26,15 @@ class EngineRunner(QObject):
     finished = Signal(str, int)  # job_id, exit_code
     log_line = Signal(str, str)  # job_id, text
 
-    def __init__(self, parent: QObject | None = None, env_path: Path | None = None) -> None:
+    def __init__(
+        self, parent: QObject | None = None, env_paths: Sequence[Path] = ()
+    ) -> None:
         super().__init__(parent)
         self._proc: QProcess | None = None
         self._job_id: str | None = None
         self._buf = ""
         self._parse: ParseProgress | None = None
-        self._env_path = env_path
+        self._env_paths = list(env_paths)
         self._t0 = 0.0
         self._first_output = False
         self._first_progress = False
@@ -48,12 +50,11 @@ class EngineRunner(QObject):
         self._buf = ""
         self._parse = parse_progress
         proc = QProcess(self)
-        if self._env_path is not None:
-            # Managed deps (ffmpeg, deno) live in app-data bin/; make them
+        if self._env_paths:
+            # Managed/bundled deps (ffmpeg, deno) live in bin/; make them
             # discoverable to engines without touching the user's PATH.
             env = QProcessEnvironment.systemEnvironment()
-            current = env.value("PATH", "")
-            env.insert("PATH", str(self._env_path) + os.pathsep + current)
+            env.insert("PATH", prepend_path(self._env_paths, env.value("PATH", "")))
             proc.setProcessEnvironment(env)
         proc.readyReadStandardOutput.connect(self._on_stdout)
         proc.readyReadStandardError.connect(self._on_stderr)

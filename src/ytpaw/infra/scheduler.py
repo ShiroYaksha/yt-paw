@@ -8,6 +8,7 @@ the sibling finishes (per-parent lock, arch §5.5 rule 3).
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Sequence
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
@@ -32,7 +33,7 @@ class Scheduler(QObject):
         output_template: str,
         logs_dir: Path,
         parent: QObject | None = None,
-        env_path: Path | None = None,
+        env_paths: Sequence[Path] | None = None,
     ) -> None:
         super().__init__(parent)
         self._db_path = db_path
@@ -41,7 +42,7 @@ class Scheduler(QObject):
         self._template = output_template
         self._logs_dir = logs_dir
         self._logs_dir.mkdir(parents=True, exist_ok=True)
-        self._runner = EngineRunner(self, env_path=env_path)
+        self._runner = EngineRunner(self, env_paths=env_paths or ())
         self._runner.progress.connect(self._on_progress)
         self._runner.finished.connect(self._on_finished)
         self._runner.log_line.connect(self._on_log)

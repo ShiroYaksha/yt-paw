@@ -17,12 +17,32 @@ pluggable download engines (yt-dlp today; gallery-dl/spotDL later). Python
 - Run from WSL (agent): `W:\CODE\yt\.venv\Scripts\python.exe` →
   `/mnt/w/CODE/yt/.venv/Scripts/python.exe -m <tool>`.
 
+## Dependency updates
+
+Pinned dependencies are refreshed on a deliberately slow train, not whenever a
+newer version appears. Read `docs/dependency-updates.md` before touching pins.
+
+```bash
+uv run python packaging/deps.py status          # read-only; shows due/available
+uv run python packaging/deps.py update --due    # only when due
+uv run python packaging/deps.py verify
+```
+
+- Policy: `packaging/dependency-policy.json`.
+- State: `packaging/dependency-state.json` (owned by `deps.py`; never hand-edit
+  to force an update).
+- Do not bump an "available" version when `due` is false.
+- After any update, run `verify` and wait for both Windows and Linux CI builds.
+  `deps.py` refreshes the PySide6/Deno/yt-dlp notice rows; review the FFmpeg row
+  manually when its rolling build changes.
+- `uv.lock` must stay tracked; it is part of the pin.
+
 ## Gates (run before declaring work done)
 
 ```powershell
-python -m ruff check src tests
+python -m ruff check src tests packaging
 python -m pytest -q -p no:cacheprovider
-python -m mypy src            # strict; tests too when touched
+python -m mypy src tests      # strict
 ```
 
 All three must be clean. Tests never hit the network (fixtures only).

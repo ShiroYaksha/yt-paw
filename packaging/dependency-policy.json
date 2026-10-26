@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "description": "Low-frequency dependency train. Components are only refreshed when due; see docs/dependency-updates.md.",
+  "python": {
+    "min_age_days": 30,
+    "components": {
+      "qt": {
+        "packages": ["PySide6"],
+        "cadence_days": 180
+      },
+      "dev": {
+        "packages": ["pytest", "pytest-qt", "ruff", "mypy"],
+        "cadence_days": 120
+      },
+      "build": {
+        "packages": ["pyinstaller", "pyinstaller-hooks-contrib", "setuptools"],
+        "cadence_days": 180
+      }
+    }
+  },
+  "sidecars": {
+    "min_age_days": 30,
+    "components": {
+      "yt-dlp": {
+        "cadence_days": 90,
+        "min_age_days": 7
+      },
+      "deno": {
+        "cadence_days": 120
+      },
+      "ffmpeg": {
+        "cadence_days": 180,
+        "min_age_days": 0
+      }
+    }
+  }
+}

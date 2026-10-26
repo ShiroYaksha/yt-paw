@@ -1,0 +1,96 @@
+{
+  "comment": "Pinned sidecars bundled next to the yt-paw executable. Refreshed by packaging/deps.py when the dependency train is due; see docs/dependency-updates.md.",
+  "platforms": {
+    "windows-x86_64": {
+      "sidecars": [
+        {
+          "id": "yt-dlp",
+          "repo": "yt-dlp/yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+          "checksum_url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/SHA2-256SUMS",
+          "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
+          "archive": "raw",
+          "target": "bin/yt-dlp.exe",
+          "verify": ["bin/yt-dlp.exe"]
+        },
+        {
+          "id": "deno",
+          "repo": "denoland/deno",
+          "version": "2.9.7",
+          "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-pc-windows-msvc.zip",
+          "checksum_url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-pc-windows-msvc.zip.sha256sum",
+          "sha256": "a0c3101b4158d1dfb7d6a78a7bf0f3de80c96bb423c152beec8beb22786f2238",
+          "archive": "zip",
+          "extract": ["deno.exe"],
+          "verify": ["bin/deno.exe"]
+        },
+        {
+          "id": "ffmpeg",
+          "repo": "BtbN/FFmpeg-Builds",
+          "version": "BtbN n8.1 win64 lgpl-shared (2026-10-24)",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-lgpl-shared-8.1.zip",
+          "checksum_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256",
+          "sha256": "edc7450333aae4042e1f4670aa7bcafe4265324ba9f75abf8de49e8b52812389",
+          "archive": "zip",
+          "extract": ["*/bin/ffmpeg.exe", "*/bin/ffprobe.exe", "*/bin/*.dll"],
+          "licenses": {
+            "*/LICENSE.txt": "ffmpeg-LICENSE.txt"
+          },
+          "verify": ["bin/ffmpeg.exe", "bin/ffprobe.exe", "bin/avcodec-*.dll"]
+        }
+      ]
+    },
+    "linux-x86_64": {
+      "sidecars": [
+        {
+          "id": "yt-dlp",
+          "repo": "yt-dlp/yt-dlp",
+          "version": "2026.08.19",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux",
+          "checksum_url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/SHA2-256SUMS",
+          "sha256": "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a",
+          "archive": "raw",
+          "target": "bin/yt-dlp",
+          "verify": ["bin/yt-dlp"]
+        },
+        {
+          "id": "deno",
+          "repo": "denoland/deno",
+          "version": "2.9.7",
+          "url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-unknown-linux-gnu.zip",
+          "checksum_url": "https://github.com/denoland/deno/releases/download/v2.9.7/deno-x86_64-unknown-linux-gnu.zip.sha256sum",
+          "sha256": "c6527f24f4b16031d3ae4fa9f658d5f11534c8d84ce7dc8502420280919c3490",
+          "archive": "zip",
+          "extract": ["deno"],
+          "verify": ["bin/deno"]
+        },
+        {
+          "id": "ffmpeg",
+          "repo": "BtbN/FFmpeg-Builds",
+          "version": "BtbN n8.1 linux64 lgpl-shared (2026-10-24)",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-lgpl-shared-8.1.tar.xz",
+          "checksum_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256",
+          "sha256": "cf11ae0a08aa7b3f9069710f88b115bb0e998981a89de28db07b7aadee93eaf9",
+          "archive": "tar.xz",
+          "files": [
+            {"pattern": "*/bin/ffmpeg", "dest": "bin/ffmpeg"},
+            {"pattern": "*/bin/ffprobe", "dest": "bin/ffprobe"},
+            {"pattern": "*/lib/libav*.so*", "dest": "lib/"},
+            {"pattern": "*/lib/libsw*.so*", "dest": "lib/"}
+          ],
+          "licenses": {
+            "*/LICENSE.txt": "ffmpeg-LICENSE.txt"
+          },
+          "verify": [
+            "bin/ffmpeg",
+            "bin/ffprobe",
+            "lib/libavcodec.so.*",
+            "lib/libavformat.so.*",
+            "lib/libavutil.so.*"
+          ]
+        }
+      ]
+    }
+  }
+}

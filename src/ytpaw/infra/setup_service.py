@@ -2,8 +2,9 @@
 
 Steps (arch §4.4): dirs → DB migrate → seed settings → resolve engines →
 resolve dependencies. Engines are discovered generically through the registry:
-per-engine override → bundled `bin/<binary_name>` → system PATH. Dependencies
-(deno, ffmpeg, ...) resolve managed bin/ → system PATH via their specs.
+per-engine override → app-managed/bundled `bin/<binary_name>` → system PATH.
+Dependencies (deno, ffmpeg, ...) resolve managed bin/ → bundled bin/ → system
+PATH via their specs.
 """
 
 from __future__ import annotations
@@ -20,11 +21,11 @@ from ytpaw.engines import registry
 from ytpaw.infra.db import connect, migrate
 from ytpaw.infra.dependencies import (
     ALL_DEPENDENCIES,
-    managed_binary_path,
     probe_dependency,
     system_binary_path,
 )
 from ytpaw.infra.engine_settings_store import EngineSettingsStore
+from ytpaw.infra.runtime_paths import bin_search_dirs, binary_name, bundled_bin_dirs
 from ytpaw.infra.settings_store import SettingsStore
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ class DependencyStatus:
     dep_id: str
     display_name: str
     path: str | None
-    origin: str  # managed|system|missing
+    origin: str  # managed|bundled|system|missing
     version: str | None
 
 
@@ -64,19 +65,18 @@ def default_app_data() -> Path:
     return Path.home() / ".config" / "yt-paw"
 
 
-def _install_bin_dirs() -> list[Path]:
-    """Candidate bundled-binary dirs: repo/dev root `bin/`, then package `bin/`."""
-    here = Path(__file__).resolve()
-    return [here.parents[3] / "bin", here.parents[2] / "bin"]
-
-
 def resolve_dependency(dep: DependencySpec, app_data: Path) -> DependencyStatus:
-    managed = managed_binary_path(app_data, dep)
-    if managed.exists():
-        return DependencyStatus(
-            dep.dep_id, dep.display_name, str(managed), "managed",
-            probe_dependency(dep, str(managed)),
-        )
+    name = binary_name(dep.binary_name)
+    for bin_dir, origin in [
+        (app_data / "bin", "managed"),
+        *[(path, "bundled") for path in bundled_bin_dirs()],
+    ]:
+        candidate = bin_dir / name
+        if candidate.exists():
+            return DependencyStatus(
+                dep.dep_id, dep.display_name, str(candidate), origin,
+                probe_dependency(dep, str(candidate)),
+            )
     found = system_binary_path(dep)
     if found:
         return DependencyStatus(
@@ -117,9 +117,7 @@ def resolve_engine_status(
         )
 
     if source == "auto":
-        bin_dirs = [app_data / "bin"] if app_data else []
-        bin_dirs += _install_bin_dirs()
-        for bin_dir in bin_dirs:
+        for bin_dir in bin_search_dirs(app_data):
             bundled = bin_dir / engine.binary_name
             for candidate in (bundled, bundled.with_suffix(".exe")):
                 if candidate.exists():
